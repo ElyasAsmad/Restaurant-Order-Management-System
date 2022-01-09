@@ -16,6 +16,7 @@
  */
 
 #include <iostream>
+#include <conio.h>
 #include <iomanip>
 #include <fstream>
 #include <cstring>
@@ -26,15 +27,70 @@
 
 using namespace std;
 
-void ShowOrderScreen(int);
+void ShowOrderScreen(string);
 
-void Test() {
-    cout << "Hello World" << endl;
-}
+struct CustOrders {
+    string tableNumber;
+    string orderID;
+    string orderName;
+    double price;
+};
+
+// Define the structure
+struct CuisineItem {
+    string cuisineId;
+    string cuisineName;
+    double price;
+};
+
+vector<CustOrders> _mainOrders; // Underscore refers to the global variable
 
 void ClearArrow(int stateX, int stateY) {
     gotoXY(stateX, stateY); cout << "  ";
     gotoXY(stateX, stateY + 2); cout << "  ";
+}
+
+vector<vector<string>> ReadTableLayout() {
+
+    ifstream inputFile;
+    vector<vector<string>> tableArr;
+    string colA, colB, colC, colD, colE, colF;
+
+    inputFile.open("TableLayout.csv");
+
+    int i = 0;
+
+    if (!inputFile.fail()) {
+
+        do {
+
+            vector<string> temp;
+
+            getline(inputFile, colA, ','); // Table Col A
+            getline(inputFile, colB, ','); // Table Col B
+            getline(inputFile, colC, ','); // Table Col C
+            getline(inputFile, colD, ','); // Table Col D
+            getline(inputFile, colE, ','); // Table Col E
+            getline(inputFile, colF, '\n'); // Table Col F
+
+            temp.push_back(colA);
+            temp.push_back(colB);
+            temp.push_back(colC);
+            temp.push_back(colD);
+            temp.push_back(colE);
+            temp.push_back(colF);
+
+            tableArr.push_back(temp);
+
+            i++;
+
+        } while (inputFile.good());
+
+        tableArr.pop_back();
+    }
+
+    return tableArr;
+    
 }
 
 void TableMenu() {
@@ -51,31 +107,39 @@ void TableMenu() {
     const int spacingX = 9;
     const int spacingY = 3;
 
+    vector<vector<string>> tableArr = ReadTableLayout();
+
+    const int tableCol = 5;
+    const int tableRow = tableArr.size() - 1;
+
     system("cls");
 
-    gotoXY(xCoord, yCoord - 2); cout << "Choose A Table";
-
     while(true) {
+
+        ShowConsoleCursor(false);
+
+        gotoXY(xCoord, yCoord - 2); cout << "Choose A Table";
 
         gotoXY(stateX, stateY); Color(9); cout << static_cast<char>(25); Color(15);
         gotoXY(stateX, stateY + 2); Color(9); cout << static_cast<char>(24); Color(15);
 
         gotoXY(xCoord, yCoord + 1);
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < tableArr.size(); i++)
         {
             gotoXY(xCoord, yCoord + 1 + (i * spacingY));
-            for (int j = 0; j < 5; j++)
+            for (int j = 0; j < tableArr.size(); j++)
             {
-                cout << setw(4) << right << ((i + 1) * 100) + j + 1;
-                Spacer(spacingX); // Spacer (utils.h)
+                cout << setw(4) << right << tableArr[i][j];
+                Spacer(spacingX);
             }
+            
             cout << endl << endl << endl;
         }
         
         system("pause>nul");
 
         if (GetAsyncKeyState(VK_DOWN) < 0) {
-            if (stateY != yCoord + (4 * 3)) {
+            if (stateY != yCoord + (tableRow * 3)) {
                 ClearArrow(stateX, stateY);
                 stateY += 3;
                 cursorY++;
@@ -95,13 +159,13 @@ void TableMenu() {
                 continue;
             } else {
                 ClearArrow(stateX, stateY);
-                stateY = yCoord + (4 * 3);
+                stateY = yCoord + (tableRow * 3);
                 cursorY = 4;
                 continue;
             }
         }
         else if (GetAsyncKeyState(VK_RIGHT) < 0) {
-            if (stateX != xCoord + 2 + (4 * 13)) {
+            if (stateX != xCoord + 2 + (tableCol * 13)) {
                 ClearArrow(stateX, stateY);
                 stateX += 13;
                 cursorX++;
@@ -121,13 +185,13 @@ void TableMenu() {
                 continue;
             } else {
                 ClearArrow(stateX, stateY);
-                stateX = xCoord + 2 + (4 * 13);
+                stateX = xCoord + 2 + (tableCol * 13);
                 cursorX = 4;
                 continue;
             }
         }
         else if (GetAsyncKeyState(VK_RETURN) < 0) {
-            ShowOrderScreen(10);
+            ShowOrderScreen(tableArr[cursorY][cursorX]);
         }
         else if (GetAsyncKeyState(VK_ESCAPE) < 0) {
             system("cls");
@@ -138,24 +202,16 @@ void TableMenu() {
 
 }
 
-void ShowMenu() {
-
-    // Define the structure
-    struct CuisineItem {
-        string cuisineId;
-        string cuisineName;
-        double price;
-    };
+vector<CuisineItem> ReadMenu() {
 
     ifstream inputFile;
     string itemID, itemName, itemPrice, _token;
     vector<CuisineItem> cuisinesMenu;
-    const int xCoord = 5, yCoord = 4;
 
     inputFile.open("Cuisines.csv"); // Open file
 
     if (!inputFile.fail()) {
-        
+
         int i = 0;
 
         do {
@@ -173,12 +229,26 @@ void ShowMenu() {
 
         } while (inputFile.good());
 
-        gotoXY(xCoord, yCoord - 2); cout << "Foods" << endl;
+        inputFile.close();
 
-        for (int i = 0; i < cuisinesMenu.size(); i++)
-        {
-            gotoXY(xCoord, yCoord + i); cout << cuisinesMenu[i].cuisineId << " - " << cuisinesMenu[i].cuisineName << " - " << cuisinesMenu[i].price;
-        }
+    }
+    return cuisinesMenu;
+}
+
+void ShowMenu() {
+
+    vector<CuisineItem> cuisinesMenu = ReadMenu();
+
+    const int xCoord = 5, yCoord = 4;
+
+    gotoXY(xCoord, yCoord - 2); cout << "Foods" << endl;
+
+    for (int i = 0; i < cuisinesMenu.size() - 1; i++)
+    {
+        gotoXY(xCoord, yCoord + i); 
+        cout << setw(4) << left << cuisinesMenu[i].cuisineId << " "
+                << setw(28) << left << cuisinesMenu[i].cuisineName << " "
+                << "RM " << fixed << showpoint << setprecision(2) << cuisinesMenu[i].price;
     }
 
 }
@@ -192,6 +262,15 @@ void About() {
 
 }
 
+void ShowOrders() {
+
+    for (int i = 0; i < _mainOrders.size(); i++)
+    {
+        cout << _mainOrders[i].orderID << " " << _mainOrders[i].tableNumber << endl;
+    }
+
+}
+
 int main() {
 
     InitFont();
@@ -199,7 +278,7 @@ int main() {
 
     MenuItems mainMenu[3] = {
                             {"Queue A New Order", TableMenu},
-                            {"Payment", About}, 
+                            {"Payment", ShowOrders}, 
                             {"About", About}
                             };
 
@@ -208,16 +287,53 @@ int main() {
     return 0;
 }
 
-void ShowOrderScreen(int tableNumber) {
+void ShowOrderScreen(string tableNumber) {
 
     system("cls");
-
-    ShowMenu(); // Show Menus
-
     const int xCoord = 60, yCoord = 4;
+    vector<CuisineItem> menus = ReadMenu();
 
-    gotoXY(xCoord, yCoord); cout << "Orders For Table Number ----- " << tableNumber << " -----";
+    ShowConsoleCursor(true);
+    string idInput;
+    int searchIndex = -1;
 
-    system("pause>nul");
+    while (true)
+    {
+        int orderIndex = _mainOrders.size();
+
+        ShowMenu(); // Show Menus
+        gotoXY(xCoord, yCoord - 2); cout << "(0 - Back To Table Menu)";
+        gotoXY(xCoord, yCoord); cout << "Orders For Table Number: ";
+        Color(9); cout << tableNumber; Color(15);
+
+        gotoXY(xCoord, yCoord + 4);
+        cout << setw(5) << left << "ID" << setw(35) << left << "Item Name" << setw(6) << left << "Price";
+
+        gotoXY(xCoord, yCoord + 5); cout << "---------------------------------------------------";
+
+        gotoXY(xCoord, yCoord + 2); cout << "Enter item ID: ";
+        getline(cin, idInput);
+
+        if (idInput == "0") break;
+
+        // Searching algorithm
+        for (int i = 0; i < menus.size(); i++)
+        {
+            if (idInput == menus[i].cuisineId) {
+                searchIndex = i;
+            }
+        }
+
+        if (searchIndex != -1) {
+            _mainOrders.push_back(CustOrders());
+            _mainOrders[orderIndex].tableNumber = tableNumber;
+            _mainOrders[orderIndex].orderID = menus[searchIndex].cuisineId;
+            _mainOrders[orderIndex].orderName = menus[searchIndex].cuisineName;
+            _mainOrders[orderIndex].price = menus[searchIndex].price;
+        }
+
+    }
+
+    system("cls");
 
 }
