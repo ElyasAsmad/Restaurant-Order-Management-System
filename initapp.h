@@ -9,7 +9,6 @@
  * 
  */
 
-
 #ifndef INITAPP_H
 #define INITAPP_H
 
@@ -60,6 +59,26 @@ void InitFont() {
     SetCurrentConsoleFontEx(GetStdHandle(STD_OUTPUT_HANDLE), FALSE, &font);
 }
 
+void ExitScreen() {
+    
+    using std::cout;
+    using std::endl;
+
+    system("cls");
+
+    gotoXY(6, 4); cout << "Exit The Program?" << endl;
+    gotoXY(6, 6); cout << "[Enter] - Yes" << endl;
+    gotoXY(6, 7); cout << "[Any Key] - No" << endl; 
+
+    system("pause>nul");
+
+    if (GetAsyncKeyState(VK_RETURN) < 0) {
+        exit(0);
+    }
+
+    system("cls");
+}
+
 // A structure for declaring menu items and their callback function
 struct MenuItems {
     std::string choice;
@@ -82,7 +101,7 @@ void RenderMenu(int menuSize, MenuItems menus[], std::string menuTitle, bool isB
 
     while(true) {
 
-        // Print menu cursor
+        // Print menu arrow
         gotoXY(2, menu_state); Color(9); cout << "\x1a"; Color(15);
 
         // Print menu title
@@ -94,6 +113,8 @@ void RenderMenu(int menuSize, MenuItems menus[], std::string menuTitle, bool isB
             cout << menus[i].choice << endl;
         }
 
+        gotoXY(xCoord, menu_state); Color(9); cout << menus[menu_state - menuSize - 1].choice; Color(15);
+
         gotoXY(xCoord, 15); cout << "\x18  - Up" << endl;
         gotoXY(xCoord, 16); cout << "\x19  - Down" << endl;
         gotoXY(xCoord, 17); cout << "[ENTER] - Select" << endl;
@@ -101,7 +122,7 @@ void RenderMenu(int menuSize, MenuItems menus[], std::string menuTitle, bool isB
 
         system("pause>nul");
 
-        if (GetAsyncKeyState(VK_DOWN) < 0 && menu_state != yCoord + menuSize) {
+        if (GetAsyncKeyState(VK_DOWN) < 0 && menu_state != yCoord + menuSize - 1) {
             gotoXY(xCoord - 3, menu_state); cout << "  ";
             menu_state++;
             menu_cursor++;
@@ -112,6 +133,16 @@ void RenderMenu(int menuSize, MenuItems menus[], std::string menuTitle, bool isB
             menu_state--;
             menu_cursor--;
             continue;
+        }
+        else if (GetAsyncKeyState(VK_RETURN) < 0) {
+            menus[menu_cursor].callbackFn();
+        }
+        else if (GetAsyncKeyState(VK_ESCAPE) < 0) {
+            if (isBack) {
+                system("cls"); break;
+            } else {
+                ExitScreen();
+            }
         }
 
     }
