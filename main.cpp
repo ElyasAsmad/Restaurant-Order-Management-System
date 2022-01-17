@@ -116,6 +116,8 @@ void TableMenu() {
 
     while(true) {
 
+        int flag = 0;
+
         ShowConsoleCursor(false);
 
         gotoXY(xCoord, yCoord - 2); cout << "Choose A Table";
@@ -127,9 +129,27 @@ void TableMenu() {
         for (int i = 0; i < tableArr.size(); i++)
         {
             gotoXY(xCoord, yCoord + 1 + (i * spacingY));
-            for (int j = 0; j < tableArr.size(); j++)
+            for (int j = 0; j < tableArr[i].size(); j++)
             {
+                flag = 0; // Reset the flag
+
+                // Search for available table
+                // 0 - Available
+                // 1 - Not available
+                for (int k = 0; k < _mainOrders.size(); k++)
+                {
+                    if (tableArr[i][j] == _mainOrders[k].tableNumber) {
+                        flag = 1;
+                    }
+                }
+                // Set color of each table green or red, depending on the availability of the table
+                if (flag == 1) 
+                    Color(12);
+                else 
+                    Color(10);
+
                 cout << setw(4) << right << tableArr[i][j];
+                Color(15); // Reset the color back to white
                 Spacer(spacingX);
             }
             
@@ -202,6 +222,73 @@ void TableMenu() {
 
 }
 
+void PrintReceipt(string tableNum, vector<CuisineItem> orders, double subtotal, double payment)
+{
+    const string receiptFile = "Receipt.txt";
+
+    ofstream outputFile;
+
+    outputFile.open(receiptFile);
+
+    if (!outputFile.fail()) {
+
+        cout << "\n\t\t\t\tTHANK YOU FOR YOUR ORDER :) GENERATING BILL ";
+        for (int a = 1; a < 7; a++) // Change 'a<?' to how many * you want
+        {
+            sleep(1);
+            cout << "...";
+        }
+        system("cls");
+
+        double change = payment - subtotal;
+
+        outputFile << "\n\t\t\t\t ================================================" << endl;
+        outputFile << "\t\t\t\t|        Welcome to Group 2 Restaurant           |" << endl;
+        outputFile << "\t\t\t\t ================================================" << endl;
+        outputFile << endl;
+        outputFile << endl;
+
+        outputFile << "\t\t\t\t------------------------------------------------" << endl;
+        outputFile << "\t\t\t\tBill No : C123 | Order : MN123 | Date: 10/1/2022 |" << endl;
+        outputFile << endl;
+        outputFile << endl;
+        outputFile << "\t\t\t\tCashier :  Hafzlan" << endl;
+        outputFile << endl;
+        outputFile << endl;
+        outputFile << "\t\t\t\t------------------------------------------------" << endl;
+        outputFile << "\t\t\t\tItem" << "                   " << "Price" << endl;
+        outputFile << "\t\t\t\t------------------------------------------------" << endl;
+        for (int i = 0; i < orders.size(); i++)
+        {
+            outputFile << "\t\t\t\t" << setw(23) << left << orders[i].cuisineName
+                << "RM " << fixed << showpoint << setprecision(2) << orders[i].price << endl;
+            outputFile << "                  " << endl;
+        }
+        outputFile << "\t\t\t\t================================================" << endl;
+        outputFile << "\t\t\t\tTotal                  :RM " << fixed << showpoint << setprecision(2) << subtotal << endl;
+        outputFile << "\t\t\t\tAmount tendered        :RM " << fixed << showpoint << setprecision(2) << payment << endl;
+        outputFile << "\t\t\t\tChange                 :RM " << fixed << showpoint << setprecision(2) << change << endl;
+        outputFile << endl;
+        outputFile << "\t\t\t\tThank you for visiting" << endl;
+        outputFile << "\t\t\t\tGROUP 2: Yatch Bay Restaurant" << endl;
+        outputFile << "\t\t\t\t ";
+        outputFile << "\n\t\t\t\t================================================" << endl;
+
+        cout << "\n\t\t\t\tBILL GENERATED SUCCESSFULLY :)" << endl;
+        cout << "\t\t\t\tPlease check receipt.txt for your bill!" << endl;
+        cout << endl;
+        cout << "\t\t\t\t[ANY KEY] - Payment Page" << endl;
+
+    }
+    else {
+        cout << "Error opening file: " << receiptFile << endl;
+        system("pause>nul");
+    }
+
+    outputFile.close();
+
+}
+
 vector<CuisineItem> ReadMenu() {
 
     ifstream inputFile;
@@ -253,21 +340,111 @@ void ShowMenu() {
 
 }
 
-void About() {
+void Payment() {
 
-    // string content = "EOP Sem 1 - 20/21\n\nElyas Asmad\nIrdina Batrisyia\nHafzlan Aideq\nIrdina Izzati\nMuhd Nurzahin\n\n2022";
-    // string title = "CSCI 1300 - Final Group Project";
+    system("cls");
 
-    // MessageBox(NULL, content, title, MB_OK);
+    string tableNum;
+    const int xCoord = 5, yCoord = 4;
+    vector<CuisineItem> orders;
+    double subtotal = 0.00, payment, change = 0.00;
+
+    while (true) {
+
+        ShowConsoleCursor(true);
+        gotoXY(xCoord, yCoord - 2); cout << "Order Summary";
+
+        gotoXY(xCoord, yCoord + 2);
+        cout << setw(5) << left << "ID" << setw(35) << left << "Item Name" << setw(6) << left << "Price";
+        gotoXY(xCoord, yCoord + 3); cout << "---------------------------------------------------";
+
+        gotoXY(xCoord + 70, yCoord + 16); cout << "0 - Back to Main Menu";
+
+        gotoXY(xCoord, yCoord); 
+        cout << "Enter a table number: ";
+        cin >> tableNum;
+
+        if (tableNum == "0") {
+            system("cls");
+            return;
+        }
+
+        // Searching algorithm
+        int idx = 0;
+        for (int i = 0; i < _mainOrders.size(); i++)
+        {
+            if (tableNum == _mainOrders[i].tableNumber) {
+                orders.push_back(CuisineItem());
+                orders[idx].cuisineId = _mainOrders[i].orderID;
+                orders[idx].cuisineName = _mainOrders[i].orderName;
+                orders[idx].price = _mainOrders[i].price;
+                subtotal += _mainOrders[i].price;
+                idx++;
+            }
+        }
+
+        for (int i = 0; i < orders.size(); i++)
+        {
+            gotoXY(xCoord, yCoord + 4 + (i * 2));
+            cout << setw(5) << left << orders[i].cuisineId
+                    << setw(35) << left << orders[i].cuisineName
+                    << "RM " << setw(6) << left << orders[i].price;
+        }
+
+        gotoXY(xCoord + 70, yCoord + 8); cout << "Subtotal: RM " << subtotal;
+        gotoXY(xCoord + 70, yCoord + 12); cout << "Change: RM " << change;
+        gotoXY(xCoord + 70, yCoord + 16); cout << "0 - Back to Main Menu";
+
+        gotoXY(xCoord + 70, yCoord + 10); cout << "Your Payment: RM ";
+        cin >> payment;
+
+        ShowConsoleCursor(false);
+
+        if (payment == 0) {
+            system("cls"); break;
+        }
+
+        change = payment - subtotal;
+
+        // Clear Previous Table Orders
+        for (int i = _mainOrders.size(); i >= 0; i--)
+        {
+            if (_mainOrders[i].tableNumber == tableNum) {
+                _mainOrders.erase(_mainOrders.begin() + i);
+            }
+        }
+        
+        gotoXY(xCoord + 70, yCoord + 12); cout << "Change: RM " << change; // Re-renders Change
+
+        gotoXY(xCoord + 70, yCoord + 15); cout << "[SPACE] - Print Receipt";
+        gotoXY(xCoord + 70, yCoord + 16); cout << "[ESC] - Back to Main Menu";
+        gotoXY(xCoord + 70, yCoord + 17); cout << "[ENTER] - Make Another Payment";
+
+        system("pause>nul");
+
+        if (GetAsyncKeyState(VK_ESCAPE) < 0) {
+            system("cls"); break;
+        }
+        else if (GetAsyncKeyState(VK_RETURN) < 0) {
+            system("cls"); continue;
+        }
+        else if (GetAsyncKeyState(VK_SPACE) < 0) {
+            system("cls");
+            PrintReceipt(tableNum, orders, subtotal, payment);
+            system("pause>nul");
+            system("cls");
+        }
+
+    }
 
 }
 
-void ShowOrders() {
+void About() {
 
-    for (int i = 0; i < _mainOrders.size(); i++)
-    {
-        cout << _mainOrders[i].orderID << " " << _mainOrders[i].tableNumber << endl;
-    }
+    LPCSTR content = "EOP Sem 1 - 20/21\n\nElyas Asmad\nIrdina Batrisyia\nHafzlan Aideq\nIrdina Izzati\nMuhd Nurzahin\n\n2022";
+    LPCSTR title = "Restaurant Order Management System";
+
+    MessageBox(NULL, content, title, MB_OK);
 
 }
 
@@ -278,7 +455,7 @@ int main() {
 
     MenuItems mainMenu[3] = {
                             {"Queue A New Order", TableMenu},
-                            {"Payment", ShowOrders}, 
+                            {"Payment", Payment}, 
                             {"About", About}
                             };
 
@@ -292,6 +469,7 @@ void ShowOrderScreen(string tableNumber) {
     system("cls");
     const int xCoord = 60, yCoord = 4;
     vector<CuisineItem> menus = ReadMenu();
+    string tempID = "";
 
     ShowConsoleCursor(true);
     string idInput;
@@ -300,21 +478,49 @@ void ShowOrderScreen(string tableNumber) {
     while (true)
     {
         int orderIndex = _mainOrders.size();
+        vector<CuisineItem> tableOrders;
+        double subtotal = 0.00;
+
+        int idx = 0;
+        for (int i = 0; i < _mainOrders.size(); i++)
+        {
+            if (_mainOrders[i].tableNumber == tableNumber) {
+                tableOrders.push_back(CuisineItem());
+                tableOrders[idx].cuisineId = _mainOrders[i].orderID;
+                tableOrders[idx].cuisineName = _mainOrders[i].orderName;
+                tableOrders[idx].price = _mainOrders[i].price;
+                subtotal += _mainOrders[i].price;
+                idx++;
+            }
+        }
 
         ShowMenu(); // Show Menus
         gotoXY(xCoord, yCoord - 2); cout << "(0 - Back To Table Menu)";
         gotoXY(xCoord, yCoord); cout << "Orders For Table Number: ";
         Color(9); cout << tableNumber; Color(15);
 
+        gotoXY(xCoord + 32, yCoord); cout << "(Subtotal: RM " << subtotal << ")";
+
         gotoXY(xCoord, yCoord + 4);
         cout << setw(5) << left << "ID" << setw(35) << left << "Item Name" << setw(6) << left << "Price";
 
         gotoXY(xCoord, yCoord + 5); cout << "---------------------------------------------------";
 
+        for (int i = 0; i < tableOrders.size(); i++)
+        {
+            gotoXY(xCoord, yCoord + 6 + (i * 2));
+            cout << setw(5) << left << tableOrders[i].cuisineId
+                 << setw(35) << left << tableOrders[i].cuisineName
+                 << "RM " << setw(6) << left << tableOrders[i].price;
+        }
+
         gotoXY(xCoord, yCoord + 2); cout << "Enter item ID: ";
+        fflush(stdin);
         getline(cin, idInput);
 
-        if (idInput == "0") break;
+        gotoXY(xCoord, yCoord + 2); Spacer(18); // Clear
+
+        if (idInput == "0") break; // Back to table menu
 
         // Searching algorithm
         for (int i = 0; i < menus.size(); i++)
